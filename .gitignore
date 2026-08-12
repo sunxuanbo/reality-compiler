@@ -1,0 +1,43 @@
+# ============================================================
+# Reality Compiler - 版本库忽略清单
+# ============================================================
+
+# ---- 密钥与本地配置（绝不入库） ----
+.env
+.streamlit/secrets.toml
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ---- 运行日志 / 临时文件 ----
+_srv.log
+_srv.err
+_srv*.log
+*.log
+_tmp_*.txt
+_visual_*
+.chrome-visual-*/
+.pack_tmp/
+dist/
+
+# ---- 本地运行时数据（记忆系统 SQLite，不入库） ----
+data/
+logs/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# ---- 系统 ----
+.DS_Store
+Thumbs.db
