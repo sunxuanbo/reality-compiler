@@ -164,12 +164,18 @@ def _sec(key: str) -> str:
     except Exception:
         return ""
 
+# 【临时方案】硬编码密钥，比赛后请删除以下 3 行 DEFAULT_API_*
+DEFAULT_API_KEY = "sk-803b3afcd0e504388fd59506dbbcc"
+DEFAULT_API_BASE = "https://api.deepseek.com"
+DEFAULT_API_MODEL = "deepseek-chat"
+
 _effective_api_key = (
     _session_api_key
     or str(os.getenv("AI_API_KEY") or "").strip()
     or str(os.getenv("DEEPSEEK_API_KEY") or "").strip()
     or _sec("AI_API_KEY")
     or _sec("DEEPSEEK_API_KEY")
+    or DEFAULT_API_KEY
 )
 _effective_api_base = (
     _session_api_base
@@ -177,6 +183,7 @@ _effective_api_base = (
     or str(os.getenv("DEEPSEEK_API_BASE") or "").strip()
     or _sec("AI_API_BASE")
     or _sec("DEEPSEEK_API_BASE")
+    or DEFAULT_API_BASE
     or "https://api.deepseek.com/chat/completions"
 )
 _effective_api_model = (
@@ -185,6 +192,7 @@ _effective_api_model = (
     or str(os.getenv("DEEPSEEK_MODEL") or "").strip()
     or _sec("AI_MODEL")
     or _sec("DEEPSEEK_MODEL")
+    or DEFAULT_API_MODEL
     or "deepseek-chat"
 )
 _api_hostname = urlsplit(_effective_api_base).hostname
