@@ -156,21 +156,35 @@ today_wid = today_world_id()
 _session_api_key = str(st.session_state.get("cfg_api_key") or "").strip()
 _session_api_base = str(st.session_state.get("cfg_api_base") or "").strip()
 _session_api_model = str(st.session_state.get("cfg_api_model") or "").strip()
+# Streamlit Cloud Secrets 支持（v3.2：读取 st.secrets 作为环境变量的 fallback）
+def _sec(key: str) -> str:
+    try:
+        v = st.secrets.get(key) if hasattr(st, "secrets") else None
+        return str(v or "").strip() if v else ""
+    except Exception:
+        return ""
+
 _effective_api_key = (
     _session_api_key
     or str(os.getenv("AI_API_KEY") or "").strip()
     or str(os.getenv("DEEPSEEK_API_KEY") or "").strip()
+    or _sec("AI_API_KEY")
+    or _sec("DEEPSEEK_API_KEY")
 )
 _effective_api_base = (
     _session_api_base
     or str(os.getenv("AI_API_BASE") or "").strip()
     or str(os.getenv("DEEPSEEK_API_BASE") or "").strip()
+    or _sec("AI_API_BASE")
+    or _sec("DEEPSEEK_API_BASE")
     or "https://api.deepseek.com/chat/completions"
 )
 _effective_api_model = (
     _session_api_model
     or str(os.getenv("AI_MODEL") or "").strip()
     or str(os.getenv("DEEPSEEK_MODEL") or "").strip()
+    or _sec("AI_MODEL")
+    or _sec("DEEPSEEK_MODEL")
     or "deepseek-chat"
 )
 _api_hostname = urlsplit(_effective_api_base).hostname
