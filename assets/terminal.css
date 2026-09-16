@@ -780,6 +780,65 @@ button[kind="primary"]:hover {
 .rc-sim-rule { margin-top: .5rem; color: var(--cyan); font-size: .76rem; }
 .rc-sim-rule.warn { color: var(--amber); }
 
+/* ---------- Agent Flow Visualization (v3.1) ---------- */
+.rc-flow {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  padding: .85rem 1rem;
+  margin: .5rem 0;
+}
+.rc-flow-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: .78rem;
+  color: var(--ink-dim);
+  margin-bottom: .6rem;
+  padding-bottom: .5rem;
+  border-bottom: 1px dashed var(--line);
+}
+.rc-flow-total {
+  font-family: var(--mono);
+  color: var(--accent);
+  font-weight: 600;
+}
+.rc-flow-step {
+  display: grid;
+  grid-template-columns: 1.6rem 4.5rem 1fr 3rem;
+  align-items: center;
+  gap: .5rem;
+  padding: .35rem 0;
+  font-size: .75rem;
+}
+.rc-flow-icon {
+  font-size: 1rem;
+  text-align: center;
+}
+.rc-flow-label {
+  color: var(--ink);
+  font-weight: 500;
+}
+.rc-flow-bar {
+  height: 6px;
+  background: rgba(255,255,255,.06);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.rc-flow-bar > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+  border-radius: 3px;
+  transition: width .3s ease;
+}
+.rc-flow-time {
+  font-family: var(--mono);
+  color: var(--accent);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ---------- Terminal and transparent calculation ---------- */
 .rc-term {
   overflow: hidden;

@@ -27,6 +27,7 @@
 
 from __future__ import annotations
 
+import time                        # v3.1 Agent 流程可视化：每步计时
 from dataclasses import dataclass, field
 
 from ..world_config import FALLBACK_WORLD, WorldProfile
@@ -76,6 +77,7 @@ class AgentRunResult:
     reflection: ReflectionResult | None = None   # 反思结论（关闭反思时为 None）
     simulation: SimulationResult | None = None   # 世界演化结论（v3.0 Phase 4，关闭时为 None）
     notes: list[str] = field(default_factory=list)   # 过程记录（供日志/调试）
+    timings: dict = field(default_factory=dict)   # v3.1 Agent 流程可视化：每步耗时（秒）
 
     @property
     def reflected_ok(self) -> bool:
@@ -157,6 +159,8 @@ class RealityAgent:
             RuntimeError：LLM 调用失败（沿用现有中文错误语义，由 UI 层捕获）
         """
         notes: list[str] = []
+        timings: dict[str, float] = {}
+        _t0 = time.perf_counter()
 
         # 1. Planner：先把输入编译成执行计划
         #    记忆接入：若传入了 LongTermMemory，先用 retriever 检索记忆上下文
@@ -171,26 +175,35 @@ class RealityAgent:
                     notes.append("已注入记忆上下文")
             except Exception as exc:     # 记忆检索失败绝不影响编译
                 notes.append(f"记忆检索失败：{exc}")
+        _t_plan = time.perf_counter()
         plan = self.planner.create_plan(user_input, world, context=effective_context)
+        timings["Planner"] = round(time.perf_counter() - _t_plan, 3)
         world = plan.world
         notes.append(plan.summary())
 
         # 2. LLM：按计划生成结构化事件（已含 schema 安全门 + 格式重试 + 兜底）
+        _t_llm = time.perf_counter()
         ai_data = self._llm_generate(
             world, plan.source, plan.date,
             api_key=api_key, base_url=base_url, model=model,
             context=effective_context,
         )
+        timings["LLM"] = round(time.perf_counter() - _t_llm, 3)
 
         # 3. Validator：语义合理性校验
+        _t_val = time.perf_counter()
         validation = self.validator.check_data(ai_data, plan)
+        timings["Validator"] = round(time.perf_counter() - _t_val, 3)
         if validation.warnings:
             notes.append("；".join(validation.warnings[:3]))
 
         # 4. Runtime：复用编译器组装 CompileResult（不重写）
+        _t_rt = time.perf_counter()
         compile_result = build_compile_result(plan.source, world, ai_data)
+        timings["Runtime"] = round(time.perf_counter() - _t_rt, 3)
 
         # 5. Reflection：AI 深度反思与本地快速复核均可选，保持旧接口语义。
+        _t_refl = time.perf_counter()
         reflection: ReflectionResult | None = None
         raw_events = ai_data.get("events") or []
         if enable_reflection:
@@ -205,11 +218,13 @@ class RealityAgent:
             )
         elif enable_local_reflection:
             reflection = self.reflector.reflect_local(raw_events)
+        timings["Reflection"] = round(time.perf_counter() - _t_refl, 3) if (enable_reflection or enable_local_reflection) else 0
         if reflection is not None and not reflection.reasonable:
             notes.append("反思未通过：" + "；".join(reflection.issues[:3]))
 
         # 5.5 世界模拟（v3.0 Phase 4）：事件 → 状态变化 → 规则触发 → 衍生事件。
         #     让世界自己发展；模拟失败/关闭绝不影响编译主流程。
+        _t_sim = time.perf_counter()
         simulation: SimulationResult | None = None
         if enable_simulation and self.simulation_engine is not None:
             try:
@@ -240,9 +255,11 @@ class RealityAgent:
                     )
             except Exception as exc:     # 模拟失败绝不影响编译
                 notes.append(f"世界模拟失败：{exc}")
+        timings["Simulation"] = round(time.perf_counter() - _t_sim, 3) if (enable_simulation and self.simulation_engine is not None) else 0
 
         # 6. 记忆归档（v3.0 Phase 3）：编译成功后把事件快照 + 标签偏好写入长期记忆。
         #    失败静默，绝不影响编译结果。
+        _t_mem = time.perf_counter()
         if memory is not None:
             try:
                 tags = _collect_tags(ai_data.get("events") or [])
@@ -265,6 +282,9 @@ class RealityAgent:
                 notes.append(f"已归档 {len(tags)} 个标签到长期记忆")
             except Exception as exc:   # pragma: no cover
                 notes.append(f"记忆归档失败：{exc}")
+        timings["Memory"] = round(time.perf_counter() - _t_mem, 3) if memory is not None else 0
+
+        timings["total"] = round(time.perf_counter() - _t0, 3)
 
         return AgentRunResult(
             plan=plan,
@@ -273,6 +293,7 @@ class RealityAgent:
             reflection=reflection,
             simulation=simulation,
             notes=notes,
+            timings=timings,
         )
 
     # ------------------------------------------------------------------

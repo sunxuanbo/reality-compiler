@@ -238,6 +238,7 @@ def _run_compile(current_text: str, run_clicked: bool) -> None:
         result = run_result.compile
         reflection = run_result.reflection
         simulation = run_result.simulation
+        timings = run_result.timings
         # 存款模式：用户设置了初始存款即启用（所有世界观下货币都扣减存款）
         deposit = int(st.session_state.get("cfg_deposit") or 0)
         warn_line = int(st.session_state.get("cfg_deposit_warn") or 0)
@@ -258,6 +259,7 @@ def _run_compile(current_text: str, run_clicked: bool) -> None:
     # 保存反思结论 + 世界演化结论（供输出区展示「AI 自我反思」「🌍 世界演化」面板）
     st.session_state["reflection"] = reflection
     st.session_state["simulation"] = simulation
+    st.session_state["agent_timings"] = timings
     if simulation is not None and simulation.final_state is not None:
         st.session_state["sim_state"] = simulation.final_state
 
@@ -318,10 +320,12 @@ def _render_output_area() -> None:
     display_world = world
     deposit_initial = st.session_state.get("deposit_initial")
 
-    st.markdown(
-        render.label_html("02 · 编译结果", f"BUILD {result.build_id}"),
-        unsafe_allow_html=True,
-    )
+    st.markdown(render.label_html("02 · 编译结果", f"BUILD {result.build_id}"), unsafe_allow_html=True)
+
+    # v3.1 Agent 执行流程可视化：每步耗时 + 进度条
+    _timings = st.session_state.get("agent_timings")
+    if _timings and _timings.get("total", 0) > 0:
+        st.markdown(render.flow_html(_timings), unsafe_allow_html=True)
 
     # 情绪氛围与手动校准：校准值仅影响本次展示，不修改 CompileResult / 日志 / 记忆。
     mood_options = ["自动", "joyful", "calm", "sad", "anxious", "angry", "mixed"]
@@ -415,6 +419,25 @@ def _render_output_area() -> None:
         mime="text/plain",
         key="btn_download",
     )
+
+    # v3.1 单次编译 PDF 报告
+    try:
+        from core.pdf_exporter import build_single_compile_pdf
+        _pdf_bytes = build_single_compile_pdf(
+            result, log, world,
+            reflection=st.session_state.get("reflection"),
+            simulation=st.session_state.get("simulation"),
+            timings=st.session_state.get("agent_timings"),
+        )
+        st.download_button(
+            label="📄 导出本次编译报告 (PDF)",
+            data=_pdf_bytes,
+            file_name=f"reality_report_{result.build_id}.pdf",
+            mime="application/pdf",
+            key="btn_download_pdf_single",
+        )
+    except Exception as e:
+        st.caption(f"⚠ PDF 生成失败：{e}")
 
     # 运算规则 / 设定说明：放底部、默认折叠，不干扰编译主流程
     with st.expander("运算规则 · 设定说明", expanded=False):
