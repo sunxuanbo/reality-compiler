@@ -165,7 +165,7 @@ def _sec(key: str) -> str:
         return ""
 
 # 【临时方案】硬编码密钥，比赛后请删除以下 3 行 DEFAULT_API_*
-DEFAULT_API_KEY = "sk-803b3afcd0e504388fd59506dbbcc"
+DEFAULT_API_KEY = "sk-3189cb5cbd144fbcb24309de208261a5"
 DEFAULT_API_BASE = "https://api.deepseek.com"
 DEFAULT_API_MODEL = "deepseek-chat"
 
