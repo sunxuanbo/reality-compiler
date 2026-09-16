@@ -839,6 +839,30 @@ button[kind="primary"]:hover {
   font-variant-numeric: tabular-nums;
 }
 
+/* v3.2 双 Agent 协作记录 */
+.rc-collab {
+  margin-top: .6rem;
+  padding-top: .6rem;
+  border-top: 1px dashed var(--line);
+}
+.rc-collab-head {
+  font-size: .78rem;
+  color: var(--cyan);
+  margin-bottom: .4rem;
+}
+.rc-collab-round {
+  display: flex;
+  justify-content: space-between;
+  font-size: .72rem;
+  font-family: var(--mono);
+  color: var(--ink-dim);
+  padding: .2rem 0;
+}
+.rc-collab-events {
+  color: var(--ink-dim);
+  opacity: .7;
+}
+
 /* ---------- Terminal and transparent calculation ---------- */
 .rc-term {
   overflow: hidden;

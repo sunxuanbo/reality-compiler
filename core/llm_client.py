@@ -767,3 +767,117 @@ def call_llm_for_reflection(
         raise
     except Exception as exc:  # pragma: no cover
         raise RuntimeError(f"AI 反思失败：{exc}")
+
+
+# ======================================================================
+# v3.2 Critic Agent —— 独立质检 Agent（双 Agent 协作）
+# ======================================================================
+def _build_critic_prompt(
+    world: WorldProfile,
+    user_input: str,
+    events: list[dict],
+    compile_result_summary: str = "",
+) -> str:
+    """构造「Critic 质检 Agent」的提示词。
+
+    Critic Agent 是独立于编译 Agent 的第二个 AI，它以「苛刻的产品经理」身份
+    评估编译结果的质量。与 Reflection（自我反思）不同：
+    - Critic 独立运行，不知道 Planner/Validator 的内部过程
+    - Critic 评分（0-100分），低于阈值自动触发重编
+    - Critic 给出具体的改进建议，供下一次编译参考
+    """
+    ev_lines = []
+    for i, ev in enumerate(events, 1):
+        ev_lines.append(
+            f"{i}. {ev.get('name', '')} | hp={ev.get('hp', 0)} "
+            f"mp={ev.get('mp', 0)} gold={ev.get('gold_or_san', 0)} "
+            f"exp={ev.get('exp', 0)} tags={ev.get('tags', [])}"
+        )
+    ev_text = "\n".join(ev_lines) if ev_lines else "（无事件）"
+
+    return f"""你是「现实编译器」的独立质检专家（Critic Agent）。你和编译 Agent 是平级的两个 AI，
+现在需要你以「苛刻的产品经理」身份评估编译 Agent 的产出质量。
+
+当前世界观：{world.label}（{world.desc}）
+当前货币/资源：{world.variable_stat.name}
+
+用户原文：
+{user_input}
+
+编译 Agent 的产出（事件列表）：
+{ev_text}
+
+编译摘要：
+{compile_result_summary or '（无）'}
+
+请从以下 5 个维度独立打分（每项 0-20 分，总分 100）：
+1. 贴合度（20）：事件是否真实反映用户原文？有没有编造？有没有遗漏关键情节？
+2. 丰富度（20）：事件数量是否合适（2-5条最佳）？数值变化是否有层次？不是全0或全正？
+3. 合理性（20）：数值是否离谱？是否符合世界观设定？
+4. 一致性（20）：事件之间是否逻辑连贯？标签是否准确？
+5. 情感表达（20）：情绪是否能从事件中自然推断出来？还是只有数值没有情感？
+
+只输出一个 JSON 对象，不要任何额外说明文字。结构必须如下：
+{{
+  "score": 85,
+  "dimensions": {{"贴合度": 18, "丰富度": 15, "合理性": 17, "一致性": 18, "情感表达": 17}},
+  "pass": true,
+  "critical_issues": ["最严重的问题"],
+  "improvement_tip": "一句话改进建议，供重编时参考"
+}}
+
+# 约束
+- 严格遵循上面 JSON Schema。
+- score >= 70 判定 pass=true；score < 70 判定 pass=false。
+- 只有确实有明显缺陷时才 pass=false，否则尽量 pass=true（轻微缺陷扣分即可）。
+"""
+
+
+def call_llm_for_critic(
+    world: WorldProfile,
+    user_input: str,
+    events: list[dict],
+    compile_result_summary: str = "",
+    *,
+    api_key: str | None = None,
+    base_url: str | None = None,
+    model: str | None = None,
+) -> dict:
+    """让 Critic Agent 独立评估编译结果质量（v3.2 双 Agent 协作）。
+
+    返回 dict：{"score": int, "dimensions": dict, "pass": bool,
+                "critical_issues": list[str], "improvement_tip": str}。
+    失败抛 RuntimeError，由 Agent 层降级为 rule-based 评分。
+    """
+    try:
+        api_key, url, model_name = _resolve_config(api_key, base_url, model)
+        payload = {
+            "model": model_name,
+            "messages": [
+                {"role": "system", "content": _build_critic_prompt(world, user_input, events, compile_result_summary)},
+                {"role": "user", "content": "请独立评估这次编译。"},
+            ],
+            "temperature": 0.1,          # 极度低温度：质检要稳定、可复现
+            "response_format": {"type": "json_object"},
+        }
+        content = _post_and_get_content(api_key, url, payload)
+        parsed = schema_validator.extract_json(content)
+        if not isinstance(parsed, dict):
+            raise RuntimeError("Critic Agent 返回的数据格式异常。")
+        score = _to_int(parsed.get("score", 60), 60)
+        # 保底 clamp
+        score = max(0, min(100, score))
+        dims = parsed.get("dimensions") or {}
+        if not isinstance(dims, dict):
+            dims = {}
+        return {
+            "score": score,
+            "dimensions": {str(k): _to_int(v, 0) for k, v in dims.items()},
+            "pass": bool(parsed.get("pass", score >= 70)),
+            "critical_issues": [str(x) for x in parsed.get("critical_issues", []) if x],
+            "improvement_tip": str(parsed.get("improvement_tip", "") or ""),
+        }
+    except RuntimeError:
+        raise
+    except Exception as exc:  # pragma: no cover
+        raise RuntimeError(f"Critic Agent 调用失败：{exc}")

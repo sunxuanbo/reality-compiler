@@ -490,23 +490,25 @@ def simulation_html(
 
 
 # ----------------------------------------------------------------------------
-# Agent 流程可视化（v3.1：每步耗时 + 进度条）
+# Agent 流程可视化（v3.2：每步耗时 + 进度条 + Critic 协作记录）
 # ----------------------------------------------------------------------------
 _AGENT_STEPS = [
     ("Planner",   "🧠",  "编译计划"),
     ("LLM",       "🤖",  "AI 生成"),
     ("Validator", "🔍",  "语义校验"),
     ("Runtime",   "⚙️",  "运行结算"),
+    ("Critic",    "🔎",  "Critic 质检"),
     ("Reflection","💭",  "AI 反思"),
     ("Simulation","🌍",  "世界演化"),
     ("Memory",    "💾",  "记忆归档"),
 ]
 
-def flow_html(timings: dict) -> str:
-    """渲染 Agent 执行流程可视化：每步图标 + 耗时 + 进度条。
+def flow_html(timings: dict, collaboration=None) -> str:
+    """渲染 Agent 执行流程可视化：每步图标 + 耗时 + 进度条 + Critic 协作记录。
 
-    参数 timings 来自 AgentRunResult.timings，示例：
-        {"Planner": 0.001, "LLM": 2.3, "total": 2.5, ...}
+    参数：
+        timings: 来自 AgentRunResult.timings
+        collaboration: 来自 AgentRunResult.collaboration（v3.2 双 Agent 协作记录）
     """
     total = timings.get("total", 0) or 0
     if total <= 0:
@@ -516,9 +518,9 @@ def flow_html(timings: dict) -> str:
     for step_key, icon, label in _AGENT_STEPS:
         t = timings.get(step_key, 0) or 0
         if t == 0 and step_key not in timings:
-            continue  # 跳过未启用的步骤
+            continue
         pct = (t / total * 100) if total > 0 else 0
-        bar_w = max(3, min(pct, 100))  # 至少 3% 宽度，让短步骤也可见
+        bar_w = max(3, min(pct, 100))
         rows.append(
             '<div class="rc-flow-step">'
             f'<span class="rc-flow-icon">{icon}</span>'
@@ -528,11 +530,34 @@ def flow_html(timings: dict) -> str:
             '</div>'
         )
     body = "".join(rows)
+
+    # v3.2 双 Agent 协作记录
+    collab_html = ""
+    if collaboration is not None and collaboration.rounds:
+        round_rows = []
+        for rnd in collaboration.rounds:
+            score = rnd.get("score", 0)
+            passed = rnd.get("pass", True)
+            badge = "✅" if passed else "❌"
+            color = "color:#7fe08a" if passed else "color:#ff7770"
+            round_rows.append(
+                f'<div class="rc-collab-round"><span>Round {rnd.get("round",1)}</span>'
+                f'<span style="{color}">{badge} {score}/100</span>'
+                f'<span class="rc-collab-events">{rnd.get("num_events",0)} 事件</span></div>'
+            )
+        final = collaboration.final_score
+        retries = collaboration.total_retries
+        collab_html = (
+            '<div class="rc-collab">'
+            f'<div class="rc-collab-head">🤝 Critic 质检：最终 {final}/100 · 重编 {retries} 次</div>'
+            + "".join(round_rows) + '</div>'
+        )
+
     return (
         '<section class="rc-flow">'
         f'<div class="rc-flow-head"><span>Agent 执行流程</span>'
         f'<span class="rc-flow-total">TOTAL {total:.1f}s</span></div>'
-        f'{body}</section>'
+        f'{body}{collab_html}</section>'
     )
 
 

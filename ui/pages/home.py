@@ -239,6 +239,7 @@ def _run_compile(current_text: str, run_clicked: bool) -> None:
         reflection = run_result.reflection
         simulation = run_result.simulation
         timings = run_result.timings
+        collaboration = run_result.collaboration
         # 存款模式：用户设置了初始存款即启用（所有世界观下货币都扣减存款）
         deposit = int(st.session_state.get("cfg_deposit") or 0)
         warn_line = int(st.session_state.get("cfg_deposit_warn") or 0)
@@ -260,6 +261,7 @@ def _run_compile(current_text: str, run_clicked: bool) -> None:
     st.session_state["reflection"] = reflection
     st.session_state["simulation"] = simulation
     st.session_state["agent_timings"] = timings
+    st.session_state["agent_collaboration"] = collaboration
     if simulation is not None and simulation.final_state is not None:
         st.session_state["sim_state"] = simulation.final_state
 
@@ -324,8 +326,9 @@ def _render_output_area() -> None:
 
     # v3.1 Agent 执行流程可视化：每步耗时 + 进度条
     _timings = st.session_state.get("agent_timings")
+    _collab = st.session_state.get("agent_collaboration")
     if _timings and _timings.get("total", 0) > 0:
-        st.markdown(render.flow_html(_timings), unsafe_allow_html=True)
+        st.markdown(render.flow_html(_timings, _collab), unsafe_allow_html=True)
 
     # 情绪氛围与手动校准：校准值仅影响本次展示，不修改 CompileResult / 日志 / 记忆。
     mood_options = ["自动", "joyful", "calm", "sad", "anxious", "angry", "mixed"]
