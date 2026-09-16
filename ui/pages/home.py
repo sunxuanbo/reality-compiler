@@ -101,9 +101,9 @@ def _render_action_buttons() -> None:
                 world_data = st.session_state.get("world_data")
                 daily = fetch_daily_event(
                     world_data,
-                    api_key=st.session_state.get("cfg_api_key"),
-                    base_url=st.session_state.get("cfg_api_base"),
-                    model=st.session_state.get("cfg_api_model"),
+                    api_key=st.session_state.get("_resolved_api_key") or st.session_state.get("cfg_api_key"),
+                    base_url=st.session_state.get("_resolved_api_base") or st.session_state.get("cfg_api_base"),
+                    model=st.session_state.get("_resolved_api_model") or st.session_state.get("cfg_api_model"),
                 )
                 st.session_state[INPUT_KEY] = daily
                 st.session_state["error"] = ""
@@ -222,9 +222,9 @@ def _run_compile(current_text: str, run_clicked: bool) -> None:
             run_result = agent.run(
                 current_text,
                 world,
-                api_key=st.session_state.get("cfg_api_key"),
-                base_url=st.session_state.get("cfg_api_base"),
-                model=st.session_state.get("cfg_api_model"),
+                api_key=st.session_state.get("_resolved_api_key") or st.session_state.get("cfg_api_key"),
+                base_url=st.session_state.get("_resolved_api_base") or st.session_state.get("cfg_api_base"),
+                model=st.session_state.get("_resolved_api_model") or st.session_state.get("cfg_api_model"),
                 memory=memory,
                 simulation_state=st.session_state.get("sim_state"),
                 enable_reflection=bool(st.session_state.get("enable_ai_reflection", False)),

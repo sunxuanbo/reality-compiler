@@ -196,6 +196,10 @@ _effective_api_model = (
     or "deepseek-chat"
 )
 _api_hostname = urlsplit(_effective_api_base).hostname
+# 把算好的有效值存进 session_state，供 home.py 等页面使用（覆盖可能残留的旧值）
+st.session_state["_resolved_api_key"] = _effective_api_key
+st.session_state["_resolved_api_base"] = _effective_api_base
+st.session_state["_resolved_api_model"] = _effective_api_model
 _connection_configured = bool(_effective_api_key) or _api_hostname in {
     "localhost", "127.0.0.1", "::1",
 }
