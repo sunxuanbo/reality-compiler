@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Reality Compiler v3.0 —— 把「现实日常」编译成「伪代码」并模拟运行的 Web Agent。
+"""Reality Compiler v3.2 —— 把「现实日常」编译成「伪代码」并模拟运行的 Web Agent。
 
 启动方式：
     pip install -r requirements.txt
@@ -43,7 +43,7 @@ from ui import render                            # noqa: E402  HTML 渲染函数
 # 1. 页面级配置（必须是第一个 Streamlit 调用）
 # ============================================================================
 st.set_page_config(
-    page_title="Reality Compiler v3.0",   # 浏览器标签页标题
+    page_title="Reality Compiler v3.2",   # 浏览器标签页标题
     page_icon="◈",                        # 标签页图标，与世界观主卡保持一致
     layout="wide",                        # CSS 再限制正文宽度，兼顾桌面与移动端
     initial_sidebar_state="collapsed",   # 移动端不再被侧栏遮挡；导航已移到页面顶部
