@@ -170,29 +170,29 @@ DEFAULT_API_BASE = "https://api.deepseek.com"
 DEFAULT_API_MODEL = "deepseek-chat"
 
 _effective_api_key = (
-    _session_api_key
+    DEFAULT_API_KEY
+    or _session_api_key
     or str(os.getenv("AI_API_KEY") or "").strip()
     or str(os.getenv("DEEPSEEK_API_KEY") or "").strip()
     or _sec("AI_API_KEY")
     or _sec("DEEPSEEK_API_KEY")
-    or DEFAULT_API_KEY
 )
 _effective_api_base = (
-    _session_api_base
+    DEFAULT_API_BASE
+    or _session_api_base
     or str(os.getenv("AI_API_BASE") or "").strip()
     or str(os.getenv("DEEPSEEK_API_BASE") or "").strip()
     or _sec("AI_API_BASE")
     or _sec("DEEPSEEK_API_BASE")
-    or DEFAULT_API_BASE
     or "https://api.deepseek.com/chat/completions"
 )
 _effective_api_model = (
-    _session_api_model
+    DEFAULT_API_MODEL
+    or _session_api_model
     or str(os.getenv("AI_MODEL") or "").strip()
     or str(os.getenv("DEEPSEEK_MODEL") or "").strip()
     or _sec("AI_MODEL")
     or _sec("DEEPSEEK_MODEL")
-    or DEFAULT_API_MODEL
     or "deepseek-chat"
 )
 _api_hostname = urlsplit(_effective_api_base).hostname
